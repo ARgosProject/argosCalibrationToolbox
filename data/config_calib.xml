@@ -1,0 +1,18 @@
+<config_calib>
+  <state_calibration type ="camera" />  
+
+  <camera_size    width="800" height="600" />
+  <projector_size width="800" height="600" />
+  
+  <boards_to_capture camera="20" projectorStatic="5" projector="20" cleaning="3" /> 
+  <max_reprojection_error camera="0.20"  projectorStatic="0.25" projectorDinamic="0.43" />
+  
+  <time_between_captures min="2.0" /> 
+  <diff_between_frames min="4.0" />
+  <circle_detection_threshold value="170" />
+  
+  <calibration_files camera="calibrationCamera.xml" projector="calibrationProjector.xml" extrinsics="cameraProjectorExtrinsics.xml" />
+    
+</config_calib>
+
+   
