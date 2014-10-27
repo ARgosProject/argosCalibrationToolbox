@@ -1,8 +1,6 @@
-#include "Core.h"
+#include "CalibrationCore.h"
 #include "Log.h"
-#include "HandDetector.h"
-#include "ScriptManager.h"
-#include "ConfigManager.h"
+//#include "ConfigManager.h"
 
 namespace argosServer{
 
@@ -14,7 +12,7 @@ namespace argosServer{
     bProjectorRefreshLock = true;
 
     // Threshold parameters
-    circleDetectionThreshold = 70;
+    circleDetectionThreshold = 150;
 
     // Application
     diffMinBetweenFrames = 4.0;    // maximum amount of movement between successive frames (must be smaller in order to add a board)
@@ -43,7 +41,7 @@ namespace argosServer{
     
     try{
       projectorFrame = cv::Scalar::all(0);
-      //cameraFrame.copyTo(debugFrame);
+      cameraFrame.copyTo(debugFrame);
       
       switch (currentState) {
       case CAMERA:
@@ -102,6 +100,7 @@ namespace argosServer{
       break;
     }
     
+    cv::waitKey(1);
     return projectorFrame;
   }
 
@@ -113,8 +112,9 @@ namespace argosServer{
     bool foundPattern = calibrationCamera.add(cameraFrame);
   
     if(foundPattern){
+      cameraFrame.copyTo(snapShot);
       drawCameraImagePoints();
-      //cv::imshow(snapShotWindow, snapShot); 
+      cv::imshow("snap", snapShot); 
     
       calibrationCamera.calibrate();
     
@@ -129,7 +129,7 @@ namespace argosServer{
     
       if (calibrationCamera.size() >= numBoardsFinalCamera){
 	calibrationCamera.save("calibrationCamera.xml");
-	Log::info("Camera calibration finished & saved to calibrationCamera.xml");
+	Log::success("Camera calibration finished & saved to calibrationCamera.xml");
 	setState(PROJECTOR_STATIC);
       }
     } else Log::error("Board not find");
@@ -155,14 +155,14 @@ namespace argosServer{
       if(calibrationProjector.size() >= numBoardsBeforeCleaning) {
       	Log::info("Cleaning");
 	int numBoardRemoved;
-	if(currState == PROJECTOR_STATIC)
+	if(currentState == PROJECTOR_STATIC)
 	  numBoardRemoved = camProjCalib.cleanStereo(maxReprojErrorProjectorStatic);
 	else	
 	  numBoardRemoved = camProjCalib.cleanStereo(maxReprojErrorProjectorDynamic);
 	
 	Log::info(std::to_string(numBoardRemoved) + " boards removed");
 	
-	if(currState == PROJECTOR_DYNAMIC && calibrationProjector.size() < numBoardsBeforeDynamicProjection) {
+	if(currentState == PROJECTOR_DYNAMIC && calibrationProjector.size() < numBoardsBeforeDynamicProjection) {
 	  Log::info("Too many boards removed, restarting to PROJECTOR_STATIC");
 	  setState(PROJECTOR_STATIC);
 	  return false;
@@ -175,7 +175,7 @@ namespace argosServer{
 	Log::success("Done");
       }
       
-      if(currState == PROJECTOR_STATIC) {
+      if(currentState == PROJECTOR_STATIC) {
 	
 	if( calibrationProjector.size() < numBoardsBeforeDynamicProjection) 
 	  Log::info(std::to_string(numBoardsBeforeDynamicProjection - calibrationProjector.size()) + " boards to go before dynamic projection");
@@ -234,7 +234,7 @@ namespace argosServer{
     if(patternPoints.size() <= 0) return;
     for(size_t i = 0; i < patternPoints.size(); i++){
       // cout <<  patternPoints[i] << endl;
-      cv::circle(projectorFrame, patternPoints[i], 18,  CV_RGB(255,255,255), -1, 8);
+      cv::circle(projectorFrame, patternPoints[i], 10,  CV_RGB(255,255,255), -1, 8);
     }
   }
 
@@ -280,7 +280,7 @@ namespace argosServer{
   
   string CalibrationCore::getCurrentStateString(){
     string name;
-    switch (currState){
+    switch (currentState){
     case CAMERA:            name = "CAMERA"; break;
     case PROJECTOR_STATIC:  name = "PROJECTOR_STATIC"; break;
     case PROJECTOR_DYNAMIC: name = "PROJECTOR_DYNAMIC"; break;

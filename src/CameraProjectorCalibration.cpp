@@ -14,8 +14,8 @@ CameraProjectorCalibration::CameraProjectorCalibration(int projectorWidth, int p
         
   calibrationProjector.setImagerSize(projectorWidth, projectorHeight);
   calibrationProjector.setPatternSize(4, 5);
-  calibrationProjector.setPatternPosition(140,50);
-  calibrationProjector.setSquareSize(30);
+  calibrationProjector.setPatternPosition(180,100);
+  calibrationProjector.setSquareSize(36);
   calibrationProjector.setPatternType(ASYMMETRIC_CIRCLES_GRID);
 }
 
@@ -26,8 +26,8 @@ CameraProjectorCalibration::CameraProjectorCalibration(){
   
   calibrationProjector.setImagerSize(800, 600);
   calibrationProjector.setPatternSize(4, 5);
-  calibrationProjector.setPatternPosition(140,50);
-  calibrationProjector.setSquareSize(30);
+  calibrationProjector.setPatternPosition(180,100);
+  calibrationProjector.setSquareSize(36);
   calibrationProjector.setPatternType(ASYMMETRIC_CIRCLES_GRID);
 }
 

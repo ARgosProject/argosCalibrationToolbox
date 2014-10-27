@@ -32,6 +32,10 @@ namespace argosServer {
      */
     virtual ~CalibrationCore();
     
+
+    void update(cv::Mat& cameraFrame);
+    cv::Mat& draw();
+    
   protected:
     
     // calibration status
@@ -73,8 +77,6 @@ namespace argosServer {
     double lastTime;
     
     //---------------------------------------------------------------------------------
-    void update();
-    void draw();
     void initializeCamera(int dev);
     void setState(CalibState state);
     string getCurrentStateString();

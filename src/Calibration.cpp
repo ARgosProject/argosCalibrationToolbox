@@ -105,7 +105,7 @@ void Calibration::save(string filename, bool absolute) const {
   fs << "reprojectionError" << reprojectionError;
   fs << "features" << "[";
   for(int i = 0; i < (int)imagePoints.size(); i++) {
-    fs << "[:" << imagePoints[i] << "]";
+    fs << "[" << imagePoints[i] << "]";
   }
   fs << "]";
 }
@@ -123,12 +123,13 @@ void Calibration::load(string filename, bool absolute) {
   fs["sensorSize_height"] >> sensorSize.height;
   fs["distCoeffs"] >> distCoeffs;
   fs["reprojectionError"] >> reprojectionError;
-  //cv::FileNode features = fs["features"];
-  //for(cv::FileNodeIterator it = features.begin(); it != features.end(); it++) {
-  //  vector<cv::Point2f> cur;
-  //  (*it) >> cur;
-  //  imagePoints.push_back(cur);
-  // }
+
+  cv::FileNode features = fs["features"];
+  for(cv::FileNodeIterator it = features.begin(); it != features.end(); it++) {
+    vector<cv::Point2f> cur;
+    (*it)[0] >> cur;
+    imagePoints.push_back(cur);
+   }
   
   addedImageSize = imageSize;
   distortedIntrinsics.setup(cameraMatrix, imageSize, sensorSize);
