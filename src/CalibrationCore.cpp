@@ -5,6 +5,7 @@
 namespace argosServer{
 
   CalibrationCore::CalibrationCore(){
+    //camProjCalib(CameraProjectorCalibration(800,600)){
     //- Read configuration file ----
     //Log::info("Reading configuration file... ");
     //ConfigManager::loadConfiguration("data/config.xml");
@@ -12,7 +13,7 @@ namespace argosServer{
     bProjectorRefreshLock = true;
 
     // Threshold parameters
-    circleDetectionThreshold = 150;
+    circleDetectionThreshold = 160;
 
     // Application
     diffMinBetweenFrames = 4.0;    // maximum amount of movement between successive frames (must be smaller in order to add a board)
@@ -27,10 +28,10 @@ namespace argosServer{
     maxReprojErrorProjectorStatic = 0.25;
     maxReprojErrorProjectorDynamic = 0.43;
 
-    projectorFrame.create(600, 800, CV_8UC1);
- 
-    setState(CAMERA);
-    //setState(PROJECTOR_STATIC);
+    projectorFrame.create(cv::Size(800,600), CV_8UC1);
+
+    //setState(CAMERA);
+    setState(PROJECTOR_STATIC);
     //setState(DEMO_AR); 
   
   }
@@ -41,8 +42,7 @@ namespace argosServer{
     
     try{
       projectorFrame = cv::Scalar::all(0);
-      cameraFrame.copyTo(debugFrame);
-      
+
       switch (currentState) {
       case CAMERA:
 	if(!timeMinBetweenFrames()) return;
@@ -100,7 +100,34 @@ namespace argosServer{
       break;
     }
     
+    cv::Mat filter;   
+    cv::Mat info;   
+    cv::Mat project;   
+    
+    cv::resize(camProjCalib.infoFrame, info, cv::Size(), 0.5, 0.5);
+    cv::resize(camProjCalib.filterFrame, filter, cv::Size(), 0.5, 0.5);
+    cv::resize(projectorFrame, project, cv::Size(), 0.5, 0.5);
+
+    cv::Size s1 = info.size();
+    cv::Size s2 = filter.size();
+    cv::Size s3 = project.size();
+
+    cv::cvtColor(project, project, CV_GRAY2BGR);
+    
+    cv::Mat output(s1.height, s1.width + s2.width + s3.width,  CV_8UC3);
+    //cv::Mat output(s1.height, s1.width + s2.width + s3.width, CV_MAT_TYPE); // put in the type of your mat
+    cv::Mat help1(output, cv::Rect(0,0, s1.width, s1.height));
+    cv::Mat help2(output, cv::Rect(s1.width, 0, s2.width, s2.height));
+    cv::Mat help3(output, cv::Rect(s1.width + s2.width, 0, s3.width, s3.height));
+    
+    info.copyTo(help1);
+    filter.copyTo(help2);
+    project.copyTo(help3);
+
+    cv::imshow("outputWindow", output);
     cv::waitKey(1);
+
+
     return projectorFrame;
   }
 
@@ -110,12 +137,12 @@ namespace argosServer{
     CameraCalibration& calibrationCamera = camProjCalib.getCalibrationCamera();
   
     bool foundPattern = calibrationCamera.add(cameraFrame);
-  
+
+    cameraFrame.copyTo(camProjCalib.infoFrame);
+    cv::cvtColor(camProjCalib.infoFrame, camProjCalib.infoFrame, CV_GRAY2BGR);      
+    drawCameraImagePoints();
+
     if(foundPattern){
-      cameraFrame.copyTo(snapShot);
-      drawCameraImagePoints();
-      cv::imshow("snap", snapShot); 
-    
       calibrationCamera.calibrate();
     
       if(calibrationCamera.size() >= numBoardsBeforeCleaning) {
@@ -128,8 +155,8 @@ namespace argosServer{
       }
     
       if (calibrationCamera.size() >= numBoardsFinalCamera){
-	calibrationCamera.save("calibrationCamera.xml");
-	Log::success("Camera calibration finished & saved to calibrationCamera.xml");
+	calibrationCamera.save("calibrationCamera.yml");
+	Log::success("Camera calibration finished & saved to calibrationCamera.yml");
 	setState(PROJECTOR_STATIC);
       }
     } else Log::error("Board not find");
@@ -144,10 +171,9 @@ namespace argosServer{
     ProjectorCalibration& calibrationProjector = camProjCalib.getCalibrationProjector();
   
     processImageForCircleDetection(cameraFrame);
-  
+    cv::cvtColor(processedImg, camProjCalib.filterFrame, CV_GRAY2BGR);
     if(camProjCalib.addProjected(cameraFrame, processedImg)){
    
-      //waitKey(1);
       Log::info("Calibrating projector");
       
       calibrationProjector.calibrate();
@@ -188,10 +214,10 @@ namespace argosServer{
 	if( calibrationProjector.size() < numBoardsFinalProjector) 
 	  Log::info(std::to_string(numBoardsFinalProjector - calibrationProjector.size()) + " boards to go to completion");
 	else {
-	  calibrationProjector.save("calibrationProjector.xml");
+	  calibrationProjector.save("calibrationProjector.yml");
 	  Log::success("Projector calibration finished & saved to calibrationProjector.xml");
         
-	  camProjCalib.saveExtrinsics("CameraProjectorExtrinsics.xml");
+	  camProjCalib.saveExtrinsics("CameraProjectorExtrinsics.yml");
 	  Log::success("Stereo Calibration finished & saved to CameraProjectorExtrinsics.xml");
         
 	  Log::success("Congrats, you made it ;)");
@@ -211,6 +237,9 @@ namespace argosServer{
       cameraFrame.copyTo(processedImg);   
   
     cv::threshold(processedImg, processedImg, circleDetectionThreshold, 255, cv::THRESH_BINARY_INV);
+   
+
+
   }
 
 
@@ -225,7 +254,7 @@ namespace argosServer{
     vector<vector<cv::Point2f> > imagePoints = camProjCalib.getCalibrationCamera().getImagePoints();
     if(imagePoints.size() <= 0) return;
     for(size_t i = 0; i < imagePoints.back().size(); i++)
-      cv::circle(snapShot, imagePoints.back()[i], 3,  CV_RGB(255,0,0), -1, 8);
+      cv::circle(camProjCalib.infoFrame, imagePoints.back()[i], 3,  CV_RGB(255,0,0), -1, 8);
   }
 
 
@@ -234,7 +263,7 @@ namespace argosServer{
     if(patternPoints.size() <= 0) return;
     for(size_t i = 0; i < patternPoints.size(); i++){
       // cout <<  patternPoints[i] << endl;
-      cv::circle(projectorFrame, patternPoints[i], 10,  CV_RGB(255,255,255), -1, 8);
+      cv::circle(projectorFrame, patternPoints[i], 16,  CV_RGB(255,255,255), -1, 8);
     }
   }
 
@@ -242,7 +271,7 @@ namespace argosServer{
     vector<cv::Point2f> patternPoints = camProjCalib.getCalibrationProjector().getCandidateImagePoints();
     if(patternPoints.size() <= 0) return;
     for(size_t i = 0; i < patternPoints.size(); i++){
-      // cout <<  patternPoints[i] << endl;
+      //cout <<  patternPoints[i] << endl;
       cv::circle(projectorFrame, patternPoints[i], 6,  CV_RGB(255,255,255), -1, 8);
     }
   }
@@ -258,7 +287,7 @@ namespace argosServer{
       camProjCalib.resetBoards();
       break;
     case PROJECTOR_STATIC:
-      calibrationCamera.load("calibrationCamera.xml",false);
+      calibrationCamera.load("calibrationCamera.yml",false);
       camProjCalib.resetBoards();
       calibrationCamera.setupCandidateObjectPoints();
       calibrationProjector.setStaticCandidateImagePoints();
@@ -266,7 +295,7 @@ namespace argosServer{
     case PROJECTOR_DYNAMIC:
       break;
     case DEMO_AR:
-      camProjCalib.load("calibrationCamera.xml", "calibrationProjector.xml", "CameraProjectorExtrinsics.xml");
+      camProjCalib.load("calibrationCamera.yml", "calibrationProjector.yml", "CameraProjectorExtrinsics.yml");
       calibrationCamera.setupCandidateObjectPoints();
       break;
     default:

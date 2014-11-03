@@ -13,9 +13,9 @@ public:
   CameraProjectorCalibration();
   CameraProjectorCalibration(int projectorWidth, int projectorHeight);
 
-  void load(string cameraConfig = "calibrationCamera.xml",
-	    string projectorConfig  = "calibrationProjector.xml",
-	    string extrinsicsConfig = "CameraProjectorExtrinsics.xml");
+  void load(string cameraConfig = "calibrationCamera.yml",
+	    string projectorConfig  = "calibrationProjector.yml",
+	    string extrinsicsConfig = "CameraProjectorExtrinsics.yml");
   
   void update(cv::Mat& camMat);
   
@@ -39,6 +39,11 @@ public:
   const cv::Mat & getCamToProjRotation() { return rotCamToProj; }
   const cv::Mat & getCamToProjTranslation() { return transCamToProj; }
   
+  cv::Mat snapFrame; 
+  cv::Mat infoFrame; 
+  cv::Mat filterFrame;
+  cv::Mat debugFrame;
+
 protected:
   
   CameraCalibration calibrationCamera;
@@ -46,6 +51,7 @@ protected:
   
   cv::Mat rotCamToProj;
   cv::Mat transCamToProj;
+
 };
 
 #endif

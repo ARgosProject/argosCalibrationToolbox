@@ -6,20 +6,28 @@ void CameraProjectorCalibration::load(string cameraConfig, string projectorConfi
   loadExtrinsics(extrinsicsConfig);
 }
     
-CameraProjectorCalibration::CameraProjectorCalibration(int projectorWidth, int projectorHeight){
-        
+CameraProjectorCalibration::CameraProjectorCalibration(int projectorWidth, int projectorHeight):
+  snapFrame(cv::Mat(600,800,CV_8UC3)),
+  infoFrame(cv::Mat(600,800,CV_8UC3)),
+  filterFrame(cv::Mat(600,800,CV_8UC3))
+{
+  
   calibrationCamera.setPatternSize(8, 5);
   calibrationCamera.setSquareSize(3.6);
   calibrationCamera.setPatternType(CHESSBOARD);
-        
+  
   calibrationProjector.setImagerSize(projectorWidth, projectorHeight);
   calibrationProjector.setPatternSize(4, 5);
   calibrationProjector.setPatternPosition(180,100);
-  calibrationProjector.setSquareSize(36);
+  calibrationProjector.setSquareSize(45);
   calibrationProjector.setPatternType(ASYMMETRIC_CIRCLES_GRID);
 }
 
-CameraProjectorCalibration::CameraProjectorCalibration(){
+CameraProjectorCalibration::CameraProjectorCalibration():
+  snapFrame(cv::Mat(600,800,CV_8UC3)),
+  infoFrame(cv::Mat(600,800,CV_8UC3)),
+  filterFrame(cv::Mat(600,800,CV_8UC3))
+{
   calibrationCamera.setPatternSize(8, 5);
   calibrationCamera.setSquareSize(3.6);
   calibrationCamera.setPatternType(CHESSBOARD);
@@ -27,7 +35,7 @@ CameraProjectorCalibration::CameraProjectorCalibration(){
   calibrationProjector.setImagerSize(800, 600);
   calibrationProjector.setPatternSize(4, 5);
   calibrationProjector.setPatternPosition(180,100);
-  calibrationProjector.setSquareSize(36);
+  calibrationProjector.setSquareSize(45);
   calibrationProjector.setPatternType(ASYMMETRIC_CIRCLES_GRID);
 }
 
@@ -68,9 +76,13 @@ vector<cv::Point2f> CameraProjectorCalibration::getProjected(const vector<cv::Po
 bool CameraProjectorCalibration::addProjected(const cv::Mat& img, cv::Mat& processedImg){
         
   vector<cv::Point2f> chessImgPts;
-        
+
   bool bPrintedPatternFound = calibrationCamera.findBoard(img, chessImgPts, true);
-  //cv::drawChessboardCorners(snapShot, calibrationCamera.getPatternSize(), cv::Mat(chessImgPts),bPrintedPatternFound);
+  //debug
+  img.copyTo(infoFrame);
+  cv::cvtColor(infoFrame, infoFrame, CV_GRAY2BGR);      
+  cv::drawChessboardCorners(infoFrame, calibrationCamera.getPatternSize(), cv::Mat(chessImgPts),bPrintedPatternFound);
+  
   if(bPrintedPatternFound) {
     cout << "Detecting asimetric grid...";
     vector<cv::Point2f> circlesImgPts;    
@@ -85,7 +97,8 @@ bool CameraProjectorCalibration::addProjected(const cv::Mat& img, cv::Mat& proce
     bool bProjectedPatternFound = cv::findCirclesGrid(processedImg, calibrationProjector.getPatternSize(), circlesImgPts, 
 						      cv::CALIB_CB_ASYMMETRIC_GRID | cv::CALIB_CB_CLUSTERING, blobDetector);   
     if(bProjectedPatternFound){
-      //cv::drawChessboardCorners(snapShot, calibrationProjector.getPatternSize(), cv::Mat(circlesImgPts),bProjectedPatternFound);
+      //debug
+      cv::drawChessboardCorners(infoFrame, calibrationProjector.getPatternSize(), cv::Mat(circlesImgPts),bProjectedPatternFound);
       vector<cv::Point3f> circlesObjectPts;
       cv::Mat boardRot;
       cv::Mat boardTrans;

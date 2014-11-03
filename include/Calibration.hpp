@@ -140,6 +140,7 @@ protected:
   Intrinsics undistortedIntrinsics;
   
   bool ready;
-};
+
+ };
 
 #endif

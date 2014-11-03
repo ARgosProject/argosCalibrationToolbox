@@ -83,9 +83,8 @@ Calibration::Calibration() :
   squareSize(3.6),
   reprojectionError(0),
   fillFrame(true),
-  ready(false){ 
+  ready(false){
 }
-
 
 // Calibration --------------
 void Calibration::save(string filename, bool absolute) const {

@@ -47,10 +47,9 @@ namespace argosServer {
     
     cv::Mat cameraFrame;        // Camera input
     cv::Mat projectorFrame;      //Projector output
-    cv::Mat debugFrame;          //debug Frame
     cv::Mat processedImg;
-    cv::Mat snapShot;
-    
+
+  
     bool bProjectorRefreshLock;
     // Threshold parameters
     int circleDetectionThreshold;
